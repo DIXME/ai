@@ -1,0 +1,11 @@
+{
+    "server": {
+        "port": 80
+    },
+    "ws": {
+        "port": 8080
+    },
+    "ollama": {
+        "model": "mistral"
+    }
+}

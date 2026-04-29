@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RoboChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-void: #0d0e11;
+    --bg-base: #141519;
+    --bg-surface: #1c1e24;
+    --bg-elevated: #242730;
+    --bg-hover: #2c2f3a;
+    --bg-active: #313545;
+    --border: #2a2d3a;
+    --border-light: #363a4a;
+    --accent: #7c6af7;
+    --accent-dim: #5d4fe0;
+    --accent-glow: rgba(124,106,247,0.18);
+    --accent2: #3ecfb2;
+    --accent2-dim: rgba(62,207,178,0.15);
+    --text-primary: #e8eaf0;
+    --text-secondary: #9399ac;
+    --text-muted: #5e6375;
+    --text-accent: #b0a8ff;
+    --online: #3ecfb2;
+    --warning: #f0c040;
+    --danger: #f05555;
+    --sidebar-w: 260px;
+    --icon-bar-w: 68px;
+    --font-main: 'Syne', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --radius: 8px;
+    --radius-lg: 14px;
+    --transition: 0.18s ease;
+  }
+
+  html, body { height: 100%; overflow: hidden; background: var(--bg-void); }
+
+  #app {
+    display: flex;
+    height: 100vh;
+    font-family: var(--font-main);
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+
+  /* ── Icon Bar ── */
+  .icon-bar {
+    width: var(--icon-bar-w);
+    background: var(--bg-void);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 6px;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .icon-bar .logo {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-radius var(--transition);
+  }
+  .icon-bar .logo:hover { border-radius: 50%; }
+  .icon-bar .divider {
+    width: 30px; height: 1px;
+    background: var(--border-light); margin: 4px 0;
+  }
+  .icon-bar .nav-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px;
+    transition: all var(--transition);
+    position: relative;
+    color: var(--text-secondary);
+  }
+  .icon-bar .nav-icon:hover, .icon-bar .nav-icon.active {
+    background: var(--accent);
+    border-radius: 14px;
+    color: #fff;
+  }
+  .icon-bar .nav-icon .badge {
+    position: absolute; top: -2px; right: -2px;
+    width: 16px; height: 16px;
+    background: var(--danger);
+    border-radius: 50%;
+    font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg-void);
+    font-family: var(--font-mono);
+  }
+  .icon-bar .spacer { flex: 1; }
+  .avatar-self {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color var(--transition);
+  }
+  .avatar-self:hover { border-color: var(--accent); }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--online);
+    position: absolute; bottom: 0; right: 0;
+    border: 2px solid var(--bg-void);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg-base);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: width var(--transition), opacity var(--transition);
+    overflow: hidden;
+  }
+  .sidebar.collapsed {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-header .server-name {
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.01em;
+    flex: 1;
+  }
+  .sidebar-header .icon-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: none; color: var(--text-secondary);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: background var(--transition), color var(--transition);
+  }
+  .sidebar-header .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .sidebar-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-search input {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px 6px 30px;
+    font-size: 13px;
+    font-family: var(--font-main);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color var(--transition);
+  }
+  .sidebar-search input:focus { border-color: var(--accent); }
+  .sidebar-search input::placeholder { color: var(--text-muted); }
+  .sidebar-search .search-wrap { position: relative; }
+  .sidebar-search .search-icon {
+    position: absolute; left: 8px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px; color: var(--text-muted);
+  }
+
+  .sidebar-section { padding: 10px 8px 4px; }
+  .section-label {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+  }
+  .section-label:hover { color: var(--text-secondary); }
+  .section-label .add-btn {
+    font-size: 16px; font-weight: 400;
+    transition: color var(--transition);
+  }
+  .section-label .add-btn:hover { color: var(--text-primary); }
+
+  .convo-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background var(--transition);
+    position: relative;
+    margin: 1px 0;
+  }
+  .convo-item:hover { background: var(--bg-hover); }
+  .convo-item.active { background: var(--bg-active); }
+  .convo-item .bot-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+    position: relative;
+  }
+  .convo-item .bot-icon .online-dot {
+    position: absolute; bottom: -1px; right: -1px;
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--bg-base);
+  }
+  .convo-item .convo-info { flex: 1; min-width: 0; }
+  .convo-item .convo-name {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .convo-item .convo-preview {
+    font-size: 11px; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: var(--font-mono);
+  }
+  .convo-item .unread {
+    min-width: 18px; height: 18px;
+    background: var(--accent);
+    border-radius: 9px;
+    font-size: 10px; font-weight: 700;
+    font-family: var(--font-mono);
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .convo-item .pin-icon { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Main Area ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-base);
+    min-width: 0;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    height: 52px;
+    background: var(--bg-base);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 16px; gap: 12px;
+    flex-shrink: 0;
+  }
+  .topbar .sidebar-toggle {
+    background: none; border: none;
+    color: var(--text-secondary); font-size: 18px;
+    cursor: pointer; padding: 4px;
+    transition: color var(--transition);
+  }
+  .topbar .sidebar-toggle:hover { color: var(--text-primary); }
+  .topbar .bot-name {
+    font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar .bot-tag {
+    font-size: 11px; font-weight: 600;
+    font-family: var(--font-mono);
+    background: var(--accent-glow);
+    color: var(--text-accent);
+    padding: 2px 8px; border-radius: 4px;
+    border: 1px solid rgba(124,106,247,0.3);
+  }
+  .topbar .bot-status {
+    font-size: 12px; color: var(--online);
+    font-family: var(--font-mono);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .topbar .bot-status::before {
+    content: '';
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--online);
+    display: inline-block;
+  }
+  .topbar .spacer { flex: 1; }
+  .topbar .icon-btn {
+    background: none; border: none;
+    color: var(--text-secondary); font-size: 16px;
+    cursor: pointer; padding: 6px;
+    border-radius: var(--radius);
+    transition: all var(--transition);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .topbar .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .topbar .members-count {
+    font-size: 12px; color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Messages ── */
+  .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px 8px;
+    display: flex; flex-direction: column; gap: 2px;
+    scroll-behavior: smooth;
+  }
+  .messages-area::-webkit-scrollbar { width: 6px; }
+  .messages-area::-webkit-scrollbar-track { background: transparent; }
+  .messages-area::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+  .day-divider {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; color: var(--text-muted);
+    font-size: 11px; font-family: var(--font-mono);
+    font-weight: 500;
+  }
+  .day-divider::before, .day-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .msg-group {
+    display: flex; gap: 14px;
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    transition: background var(--transition);
+  }
+  .msg-group:hover { background: var(--bg-elevated); }
+  .msg-group .avatar {
+    width: 38px; height: 38px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0; margin-top: 2px;
+  }
+  .msg-group.is-user .avatar {
+    background: var(--accent-dim);
+    font-size: 14px; font-weight: 700;
+  }
+  .msg-group .msg-content { flex: 1; min-width: 0; }
+  .msg-header {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .msg-name {
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+  .msg-name.bot-name { color: var(--text-accent); }
+  .msg-name.user-name { color: #ffd580; }
+  .msg-time {
+    font-size: 11px; color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .msg-badge {
+    font-size: 10px; font-weight: 700;
+    background: var(--accent-glow);
+    color: var(--text-accent);
+    padding: 1px 6px; border-radius: 3px;
+    border: 1px solid rgba(124,106,247,0.25);
+    font-family: var(--font-mono);
+  }
+  .msg-text {
+    font-size: 14px; line-height: 1.6;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+  .msg-text code {
+    background: var(--bg-elevated);
+    padding: 1px 5px; border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--accent2);
+    border: 1px solid var(--border-light);
+  }
+  .msg-text pre {
+    background: var(--bg-void);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px; margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    overflow-x: auto; color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .typing-indicator {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 0;
+  }
+  .typing-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-muted);
+    animation: typingBounce 1.2s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  .msg-reactions {
+    display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+  }
+  .reaction {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+    transition: all var(--transition);
+  }
+  .reaction:hover { background: var(--bg-hover); border-color: var(--accent); }
+  .reaction.reacted { background: var(--accent-glow); border-color: rgba(124,106,247,0.4); }
+  .reaction .count { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+
+  /* ── Input Area ── */
+  .input-area {
+    padding: 12px 16px 16px;
+    flex-shrink: 0;
+  }
+  .input-box {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition), box-shadow var(--transition);
+    overflow: hidden;
+  }
+  .input-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .cmd-preview {
+    padding: 8px 14px 0;
+    font-size: 12px; font-family: var(--font-mono);
+    color: var(--text-accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cmd-preview .cmd-tag {
+    background: var(--accent-glow);
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: 4px; padding: 1px 6px;
+  }
+  .cmd-preview .cmd-close {
+    margin-left: auto; cursor: pointer;
+    color: var(--text-muted); font-size: 14px;
+    transition: color var(--transition);
+  }
+  .cmd-preview .cmd-close:hover { color: var(--text-primary); }
+
+  .input-row {
+    display: flex; align-items: flex-end; gap: 8px;
+    padding: 10px 12px;
+  }
+  .input-actions-left { display: flex; gap: 4px; align-items: flex-end; }
+  .input-actions-right { display: flex; gap: 4px; align-items: flex-end; }
+  .action-btn {
+    width: 32px; height: 32px;
+    background: transparent; border: none;
+    color: var(--text-secondary); font-size: 16px;
+    cursor: pointer; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition); flex-shrink: 0;
+  }
+  .action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .action-btn.active { color: var(--accent); }
+  .main-input {
+    flex: 1;
+    background: none; border: none; outline: none;
+    font-family: var(--font-main);
+    font-size: 14px; color: var(--text-primary);
+    line-height: 1.5; resize: none;
+    min-height: 22px; max-height: 120px;
+    overflow-y: auto;
+  }
+  .main-input::placeholder { color: var(--text-muted); }
+  .main-input::-webkit-scrollbar { display: none; }
+  .send-btn {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border: none; border-radius: 8px;
+    color: #fff; font-size: 15px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition); flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--accent-dim); transform: scale(1.05); }
+  .send-btn:disabled { background: var(--bg-hover); color: var(--text-muted); transform: none; cursor: default; }
+
+  /* ── Commands Popup ── */
+  .commands-popup {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-light);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 16px;
+    z-index: 100;
+    max-height: 340px; overflow-y: auto;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+  }
+  .commands-popup h3 {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted);
+    font-weight: 700; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .cmd-grid { display: flex; flex-direction: column; gap: 3px; }
+  .cmd-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; border-radius: var(--radius);
+    cursor: pointer; transition: background var(--transition);
+  }
+  .cmd-row:hover { background: var(--bg-hover); }
+  .cmd-row .cmd-name {
+    font-family: var(--font-mono); font-size: 13px;
+    font-weight: 600; color: var(--accent);
+    min-width: 120px;
+  }
+  .cmd-row .cmd-desc { font-size: 13px; color: var(--text-secondary); }
+
+  /* ── Settings Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    width: 680px; max-width: 95vw;
+    max-height: 85vh;
+    display: flex; overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .modal-nav {
+    width: 200px; flex-shrink: 0;
+    background: var(--bg-void);
+    padding: 20px 8px;
+    border-right: 1px solid var(--border);
+  }
+  .modal-nav-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); padding: 0 10px 8px;
+  }
+  .modal-nav-item {
+    padding: 8px 10px; border-radius: var(--radius);
+    cursor: pointer; font-size: 14px; font-weight: 500;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .modal-nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .modal-nav-item.active { background: var(--bg-active); color: var(--text-primary); }
+  .modal-nav-sep {
+    height: 1px; background: var(--border);
+    margin: 8px 10px;
+  }
+  .modal-content {
+    flex: 1; padding: 28px 32px;
+    overflow-y: auto;
+  }
+  .modal-content::-webkit-scrollbar { width: 4px; }
+  .modal-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+  .modal-content h2 {
+    font-size: 20px; font-weight: 800;
+    margin-bottom: 24px; letter-spacing: -0.01em;
+  }
+  .setting-group { margin-bottom: 28px; }
+  .setting-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-row-info { flex: 1; }
+  .setting-row-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .setting-row-desc { font-size: 12px; color: var(--text-muted); }
+  .toggle {
+    width: 42px; height: 24px;
+    background: var(--border-light);
+    border-radius: 12px; position: relative;
+    cursor: pointer; transition: background var(--transition);
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px;
+    transition: transform var(--transition);
+  }
+  .toggle.on::after { transform: translateX(18px); }
+  .select-input {
+    background: var(--bg-elevated); border: 1px solid var(--border-light);
+    border-radius: var(--radius); padding: 6px 10px;
+    font-family: var(--font-main); font-size: 13px;
+    color: var(--text-primary); cursor: pointer; outline: none;
+  }
+  .select-input:focus { border-color: var(--accent); }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none;
+    color: var(--text-secondary); font-size: 20px;
+    cursor: pointer; padding: 6px;
+    transition: color var(--transition);
+  }
+  .modal-close:hover { color: var(--text-primary); }
+
+  /* Bot Profiles */
+  .bot-profiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .bot-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px;
+    cursor: pointer; transition: all var(--transition);
+  }
+  .bot-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+  .bot-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+  .bot-card .bot-emoji { font-size: 28px; margin-bottom: 8px; }
+  .bot-card .bot-card-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .bot-card .bot-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+  /* Scroll to bottom button */
+  .scroll-btn {
+    position: absolute; bottom: 100px; right: 30px;
+    width: 36px; height: 36px;
+    background: var(--bg-elevated); border: 1px solid var(--border-light);
+    border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text-secondary);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: all var(--transition);
+    z-index: 10;
+  }
+  .scroll-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .messages-wrap { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* Slash autocomplete */
+  .slash-menu {
+    position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    z-index: 50;
+    max-height: 220px; overflow-y: auto;
+  }
+  .slash-menu-header {
+    padding: 8px 12px;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .slash-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 14px; cursor: pointer;
+    transition: background var(--transition);
+  }
+  .slash-item:hover, .slash-item.focused { background: var(--bg-hover); }
+  .slash-item .s-name { font-family: var(--font-mono); font-size: 13px; color: var(--accent); font-weight: 600; min-width: 110px; }
+  .slash-item .s-desc { font-size: 13px; color: var(--text-secondary); }
+
+  /* pin at top */
+  .pinned-banner {
+    padding: 8px 16px;
+    background: var(--bg-void);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .pinned-banner span { color: var(--text-secondary); }
+
+  .fade-in { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Icon Bar -->
+  <div class="icon-bar">
+    <div class="logo">🤖</div>
+    <div class="divider"></div>
+    <div class="nav-icon active" title="Chat">💬</div>
+    <div class="nav-icon" title="Bots" @click="openSettings('bots')">🦾</div>
+    <div class="nav-icon" title="Explore">🌐</div>
+    <div class="nav-icon" title="Notifications">
+      🔔
+      <div class="badge">3</div>
+    </div>
+    <div class="spacer"></div>
+    <div style="position:relative; cursor:pointer" @click="openSettings('account')">
+      <div class="avatar-self">U</div>
+      <div class="status-dot"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" :class="{ collapsed: !sidebarOpen }">
+    <div class="sidebar-header">
+      <span class="server-name">⚡ RoboChat</span>
+      <button class="icon-btn" @click="openSettings('general')">⚙</button>
+    </div>
+    <div class="sidebar-search">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Find a conversation..." v-model="searchQuery" />
+      </div>
+    </div>
+
+    <div style="flex:1; overflow-y:auto; padding: 6px 0;">
+      <!-- Pinned -->
+      <div class="sidebar-section">
+        <div class="section-label" @click="pinnedOpen=!pinnedOpen">
+          <span>{{ pinnedOpen ? '▾' : '▸' }} Pinned</span>
+        </div>
+        <template v-if="pinnedOpen">
+          <div
+            v-for="c in pinnedConvos"
+            :key="c.id"
+            class="convo-item"
+            :class="{ active: activeConvo?.id === c.id }"
+            @click="switchConvo(c)"
+          >
+            <div class="bot-icon" :style="{ background: c.bgColor }">
+              {{ c.emoji }}
+              <div class="online-dot" :style="{ background: c.online ? 'var(--online)' : 'var(--text-muted)' }"></div>
+            </div>
+            <div class="convo-info">
+              <div class="convo-name">{{ c.name }}</div>
+              <div class="convo-preview">{{ c.preview }}</div>
+            </div>
+            <span v-if="c.unread" class="unread">{{ c.unread }}</span>
+            <span v-else class="pin-icon">📌</span>
+          </div>
+        </template>
+      </div>
+
+      <!-- DMs -->
+      <div class="sidebar-section">
+        <div class="section-label" @click="dmsOpen=!dmsOpen">
+          <span>{{ dmsOpen ? '▾' : '▸' }} Direct Messages</span>
+          <span class="add-btn">＋</span>
+        </div>
+        <template v-if="dmsOpen">
+          <div
+            v-for="c in filteredConvos"
+            :key="c.id"
+            class="convo-item"
+            :class="{ active: activeConvo?.id === c.id }"
+            @click="switchConvo(c)"
+          >
+            <div class="bot-icon" :style="{ background: c.bgColor }">
+              {{ c.emoji }}
+              <div class="online-dot" :style="{ background: c.online ? 'var(--online)' : 'var(--text-muted)' }"></div>
+            </div>
+            <div class="convo-info">
+              <div class="convo-name">{{ c.name }}</div>
+              <div class="convo-preview">{{ c.preview }}</div>
+            </div>
+            <span v-if="c.unread" class="unread">{{ c.unread }}</span>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <button class="sidebar-toggle" @click="sidebarOpen=!sidebarOpen">{{ sidebarOpen ? '◀' : '▶' }}</button>
+      <div class="bot-name">
+        <span>{{ activeConvo?.emoji }}</span>
+        {{ activeConvo?.name }}
+        <span class="bot-tag">{{ activeConvo?.tag }}</span>
+      </div>
+      <span class="bot-status">online</span>
+      <div class="spacer"></div>
+      <span class="members-count">🤖 {{ activeConvo?.model }}</span>
+      <button class="icon-btn" title="Search messages">🔍</button>
+      <button class="icon-btn" title="Pin messages">📌</button>
+      <button class="icon-btn" title="Settings" @click="openSettings('general')">⚙</button>
+    </div>
+
+    <!-- Pinned Banner -->
+    <div class="pinned-banner" v-if="activeConvo?.pinnedMsg">
+      📌 <span>{{ activeConvo.pinnedMsg }}</span>
+    </div>
+
+    <!-- Messages Wrap -->
+    <div class="messages-wrap">
+      <div class="messages-area" ref="msgsEl">
+        <div class="day-divider">Today</div>
+
+        <template v-for="(msg, i) in activeMessages" :key="msg.id">
+          <div class="msg-group fade-in" :class="{ 'is-user': msg.isUser }">
+            <div class="avatar" :style="msg.isUser ? {} : { background: activeConvo?.bgColor, fontSize:'18px' }">
+              {{ msg.isUser ? 'U' : activeConvo?.emoji }}
+            </div>
+            <div class="msg-content">
+              <div class="msg-header">
+                <span class="msg-name" :class="msg.isUser ? 'user-name' : 'bot-name'">
+                  {{ msg.isUser ? 'You' : activeConvo?.name }}
+                </span>
+                <span class="msg-time">{{ msg.time }}</span>
+                <span v-if="!msg.isUser" class="msg-badge">AI</span>
+              </div>
+              <div class="msg-text" v-html="renderMsg(msg.text)"></div>
+              <div class="msg-reactions" v-if="msg.reactions?.length">
+                <div
+                  v-for="r in msg.reactions" :key="r.emoji"
+                  class="reaction" :class="{ reacted: r.reacted }"
+                  @click="toggleReaction(msg, r)"
+                >
+                  {{ r.emoji }}
+                  <span class="count">{{ r.count }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Typing indicator -->
+        <div class="msg-group fade-in" v-if="isTyping">
+          <div class="avatar" :style="{ background: activeConvo?.bgColor }">{{ activeConvo?.emoji }}</div>
+          <div class="msg-content">
+            <div class="msg-header">
+              <span class="msg-name bot-name">{{ activeConvo?.name }}</span>
+              <span class="msg-time">now</span>
+            </div>
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll to bottom -->
+      <button class="scroll-btn" v-if="showScrollBtn" @click="scrollBottom">↓</button>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area" style="position:relative">
+      <!-- Slash autocomplete -->
+      <div class="slash-menu" v-if="showSlashMenu">
+        <div class="slash-menu-header">Commands</div>
+        <div
+          v-for="(cmd, i) in filteredSlashCmds"
+          :key="cmd.name"
+          class="slash-item"
+          :class="{ focused: slashIndex === i }"
+          @click="insertCmd(cmd)"
+        >
+          <span class="s-name">/{{ cmd.name }}</span>
+          <span class="s-desc">{{ cmd.desc }}</span>
+        </div>
+      </div>
+
+      <div class="input-box">
+        <div class="cmd-preview" v-if="activeCmd">
+          <span class="cmd-tag">/{{ activeCmd.name }}</span>
+          {{ activeCmd.desc }}
+          <span class="cmd-close" @click="clearCmd">✕</span>
+        </div>
+        <div class="input-row">
+          <div class="input-actions-left">
+            <button class="action-btn" title="Attach file">📎</button>
+            <button class="action-btn" title="Image">🖼</button>
+          </div>
+          <textarea
+            class="main-input"
+            ref="inputEl"
+            :placeholder="activeCmd ? activeCmd.placeholder : 'Message ' + activeConvo?.name + ' — / for commands'"
+            v-model="inputText"
+            @keydown="handleKeydown"
+            @input="handleInput"
+            rows="1"
+          ></textarea>
+          <div class="input-actions-right">
+            <button class="action-btn" title="Emoji">😊</button>
+            <button class="action-btn" :class="{ active: voiceMode }" title="Voice" @click="voiceMode=!voiceMode">🎙</button>
+            <button class="send-btn" @click="sendMessage" :disabled="!inputText.trim() && !activeCmd">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" v-if="settingsOpen" @click.self="settingsOpen=false">
+    <div class="modal">
+      <div class="modal-nav">
+        <div class="modal-nav-title">User Settings</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='account'}" @click="settingsTab='account'">👤 Account</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='general'}" @click="settingsTab='general'">⚙ General</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='appearance'}" @click="settingsTab='appearance'">🎨 Appearance</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='notifications'}" @click="settingsTab='notifications'">🔔 Notifications</div>
+        <div class="modal-nav-sep"></div>
+        <div class="modal-nav-title">AI Settings</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='bots'}" @click="settingsTab='bots'">🤖 Bot Profiles</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='ai'}" @click="settingsTab='ai'">🧠 AI Preferences</div>
+        <div class="modal-nav-item" :class="{active:settingsTab==='privacy'}" @click="settingsTab='privacy'">🔒 Privacy</div>
+        <div class="modal-nav-sep"></div>
+        <div class="modal-nav-item" style="color:var(--danger)" @click="settingsOpen=false">✕ Close</div>
+      </div>
+      <div class="modal-content">
+        <!-- Account -->
+        <template v-if="settingsTab==='account'">
+          <h2>Account</h2>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;padding:20px;background:var(--bg-elevated);border-radius:var(--radius-lg);border:1px solid var(--border)">
+            <div style="width:64px;height:64px;border-radius:20px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800">U</div>
+            <div>
+              <div style="font-size:18px;font-weight:800">User#0042</div>
+              <div style="font-size:13px;color:var(--text-muted);font-family:var(--font-mono)">user@robochat.ai</div>
+              <div style="margin-top:6px;display:flex;gap:6px">
+                <span style="font-size:11px;background:var(--accent-glow);color:var(--text-accent);padding:2px 8px;border-radius:4px;border:1px solid rgba(124,106,247,0.3);font-family:var(--font-mono)">PRO</span>
+                <span style="font-size:11px;background:var(--accent2-dim);color:var(--accent2);padding:2px 8px;border-radius:4px;font-family:var(--font-mono)">EARLY ACCESS</span>
+              </div>
+            </div>
+          </div>
+          <div class="setting-group">
+            <div class="setting-label">Profile</div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Display Name</div><div class="setting-row-desc">Your name shown in chat</div></div>
+              <input style="background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);padding:6px 10px;font-family:var(--font-main);font-size:13px;color:var(--text-primary);outline:none;width:160px" value="User" />
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Status</div><div class="setting-row-desc">What others see</div></div>
+              <select class="select-input">
+                <option>🟢 Online</option>
+                <option>🌙 Do Not Disturb</option>
+                <option>⚪ Invisible</option>
+              </select>
+            </div>
+          </div>
+        </template>
+
+        <!-- General -->
+        <template v-if="settingsTab==='general'">
+          <h2>General</h2>
+          <div class="setting-group">
+            <div class="setting-label">Interface</div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Compact Mode</div><div class="setting-row-desc">Reduce spacing between messages</div></div>
+              <div class="toggle" :class="{on:settings.compact}" @click="settings.compact=!settings.compact"></div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Show Timestamps</div><div class="setting-row-desc">Display time on every message</div></div>
+              <div class="toggle" :class="{on:settings.timestamps}" @click="settings.timestamps=!settings.timestamps"></div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Sidebar Expanded</div><div class="setting-row-desc">Keep sidebar open by default</div></div>
+              <div class="toggle" :class="{on:sidebarOpen}" @click="sidebarOpen=!sidebarOpen"></div>
+            </div>
+          </div>
+          <div class="setting-group">
+            <div class="setting-label">Keyboard</div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Send on Enter</div><div class="setting-row-desc">Shift+Enter for new line</div></div>
+              <div class="toggle" :class="{on:settings.enterSend}" @click="settings.enterSend=!settings.enterSend"></div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Appearance -->
+        <template v-if="settingsTab==='appearance'">
+          <h2>Appearance</h2>
+          <div class="setting-group">
+            <div class="setting-label">Theme</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div v-for="t in themes" :key="t.id" @click="activeTheme=t.id"
+                style="padding:14px;border-radius:var(--radius-lg);cursor:pointer;transition:all var(--transition)"
+                :style="{ background: activeTheme===t.id ? 'var(--accent-glow)' : 'var(--bg-elevated)', border: activeTheme===t.id ? '1px solid rgba(124,106,247,0.5)' : '1px solid var(--border)' }">
+                <div style="font-size:20px;margin-bottom:6px">{{ t.icon }}</div>
+                <div style="font-size:13px;font-weight:600">{{ t.name }}</div>
+                <div style="font-size:11px;color:var(--text-muted)">{{ t.desc }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="setting-group">
+            <div class="setting-label">Font Size</div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Message Font Size</div></div>
+              <select class="select-input">
+                <option>Small (12px)</option>
+                <option selected>Medium (14px)</option>
+                <option>Large (16px)</option>
+              </select>
+            </div>
+          </div>
+        </template>
+
+        <!-- Notifications -->
+        <template v-if="settingsTab==='notifications'">
+          <h2>Notifications</h2>
+          <div class="setting-group">
+            <div class="setting-label">Alerts</div>
+            <div class="setting-row" v-for="n in notifSettings" :key="n.key">
+              <div class="setting-row-info"><div class="setting-row-name">{{ n.name }}</div><div class="setting-row-desc">{{ n.desc }}</div></div>
+              <div class="toggle" :class="{on:n.on}" @click="n.on=!n.on"></div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Bots -->
+        <template v-if="settingsTab==='bots'">
+          <h2>Bot Profiles</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Choose which AI bot to chat with by default.</p>
+          <div class="bot-profiles">
+            <div v-for="b in botProfiles" :key="b.id" class="bot-card" :class="{selected:selectedBot===b.id}" @click="selectedBot=b.id">
+              <div class="bot-emoji">{{ b.emoji }}</div>
+              <div class="bot-card-name">{{ b.name }}</div>
+              <div style="font-size:11px;color:var(--accent);font-family:var(--font-mono);margin-bottom:4px">{{ b.model }}</div>
+              <div class="bot-card-desc">{{ b.desc }}</div>
+            </div>
+          </div>
+        </template>
+
+        <!-- AI Preferences -->
+        <template v-if="settingsTab==='ai'">
+          <h2>AI Preferences</h2>
+          <div class="setting-group">
+            <div class="setting-label">Behavior</div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Response Style</div><div class="setting-row-desc">How verbose responses should be</div></div>
+              <select class="select-input">
+                <option>Concise</option>
+                <option selected>Balanced</option>
+                <option>Detailed</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Streaming Replies</div><div class="setting-row-desc">Show responses as they're typed</div></div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Memory</div><div class="setting-row-desc">Allow AI to remember past conversations</div></div>
+              <div class="toggle" :class="{on:settings.memory}" @click="settings.memory=!settings.memory"></div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Code Highlighting</div><div class="setting-row-desc">Syntax highlight code blocks</div></div>
+              <div class="toggle on"></div>
+            </div>
+          </div>
+          <div class="setting-group">
+            <div class="setting-label">System Prompt</div>
+            <textarea
+              style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);padding:10px 12px;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);outline:none;resize:vertical;min-height:80px;line-height:1.6"
+              placeholder="You are a helpful AI assistant..."
+            ></textarea>
+          </div>
+        </template>
+
+        <!-- Privacy -->
+        <template v-if="settingsTab==='privacy'">
+          <h2>Privacy</h2>
+          <div class="setting-group">
+            <div class="setting-label">Data</div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Save Conversation History</div><div class="setting-row-desc">Store chat logs locally</div></div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-info"><div class="setting-row-name">Analytics</div><div class="setting-row-desc">Help improve RoboChat</div></div>
+              <div class="toggle"></div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding:16px;background:rgba(240,85,85,0.08);border:1px solid rgba(240,85,85,0.2);border-radius:var(--radius-lg)">
+            <div style="font-size:14px;font-weight:700;color:var(--danger);margin-bottom:6px">Danger Zone</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">These actions cannot be undone.</div>
+            <button style="background:var(--danger);border:none;color:#fff;padding:8px 16px;border-radius:var(--radius);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer">Clear All Conversations</button>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+const COMMANDS = [
+  { name: 'imagine', desc: 'Generate an image from a description', placeholder: 'Describe the image...' },
+  { name: 'summarize', desc: 'Summarize a long text or URL', placeholder: 'Paste text or URL to summarize...' },
+  { name: 'translate', desc: 'Translate text to another language', placeholder: 'Text to translate...' },
+  { name: 'code', desc: 'Write or explain code', placeholder: 'Describe the code you need...' },
+  { name: 'debug', desc: 'Debug your code with AI assistance', placeholder: 'Paste your code here...' },
+  { name: 'search', desc: 'Search the web for information', placeholder: 'What to search for...' },
+  { name: 'persona', desc: 'Set a custom AI persona', placeholder: 'Describe the persona...' },
+  { name: 'reset', desc: 'Clear conversation context', placeholder: '' },
+  { name: 'export', desc: 'Export conversation as markdown', placeholder: '' },
+  { name: 'help', desc: 'Show all available commands', placeholder: '' },
+];
+
+const BOT_RESPONSES = {
+  default: [
+    "That's a fascinating question! Let me think through this carefully...\n\nBased on my analysis, there are several key points to consider. The most important factor here is the underlying structure of the problem itself.",
+    "I understand what you're asking. Here's my perspective:\n\nThe core insight is that these systems work by pattern recognition at a fundamental level. `Neural networks` are particularly good at this kind of task.",
+    "Great prompt! Here's a concise answer:\n\nThe answer depends heavily on context. In most cases, the optimal approach involves balancing trade-offs between performance and simplicity.",
+    "Interesting! Let me break this down:\n\n1. First, consider the inputs\n2. Then evaluate the constraints\n3. Finally, synthesize a solution\n\nThis framework applies broadly.",
+    "Here's what I know about that:\n\nResearch in this area has shown promising results. The key breakthrough came when scientists realized that `emergent behavior` often arises from simple rules applied at scale.",
+  ],
+  code: [
+    "Here's the code you need:\n\n```\nfunction robochat(input) {\n  const tokens = tokenize(input);\n  return model.generate(tokens);\n}\n```\n\nThis function handles tokenization and generation in one pass. Let me know if you'd like it adapted!",
+    "I can help debug that. The issue is likely here:\n\n```\n// Before:\nfor (let i = 0; i <= arr.length; i++)\n\n// After:\nfor (let i = 0; i < arr.length; i++)\n```\n\nOff-by-one errors are extremely common — this should fix it.",
+  ],
+  imagine: [
+    "🖼️ Generating image from your description...\n\n*[Image would be generated here via DALL-E / Stable Diffusion]*\n\nI've queued your generation. Typical render time is 5–15 seconds. The prompt was enhanced with: `photorealistic, high detail, cinematic lighting`.",
+  ],
+  translate: [
+    "Here's your translation:\n\n**Original:** The input you provided\n**Translated:** La entrada que proporcionaste *(Spanish)*\n\nI can also translate to French, German, Japanese, Chinese, Arabic, and 50+ other languages. Just specify!",
+  ],
+};
+
+function randomResponse(cmd) {
+  const pool = BOT_RESPONSES[cmd] || BOT_RESPONSES.default;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function now() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+const SEED_MESSAGES = (botName) => [
+  {
+    id: 1, isUser: false, time: '10:12 AM',
+    text: `Hi! I'm **${botName}**, your AI assistant. How can I help you today?\n\nTry typing **/** to see available commands, or just start chatting!`,
+    reactions: [{ emoji: '👋', count: 3, reacted: false }, { emoji: '🤖', count: 1, reacted: false }]
+  }
+];
+
+createApp({
+  setup() {
+    const sidebarOpen = ref(true);
+    const searchQuery = ref('');
+    const inputText = ref('');
+    const isTyping = ref(false);
+    const voiceMode = ref(false);
+    const settingsOpen = ref(false);
+    const settingsTab = ref('general');
+    const showScrollBtn = ref(false);
+    const msgsEl = ref(null);
+    const inputEl = ref(null);
+    const activeCmd = ref(null);
+    const showSlashMenu = ref(false);
+    const slashIndex = ref(0);
+    const pinnedOpen = ref(true);
+    const dmsOpen = ref(true);
+    const selectedBot = ref('nova');
+    const activeTheme = ref('void');
+
+    const convos = ref([
+      { id: 1, name: 'Nova', emoji: '🌟', tag: 'GPT-4o', model: 'GPT-4o', bgColor: '#2d1f5e', online: true, preview: 'How can I help?', unread: 0, pinnedMsg: 'Nova is ready to assist — try /code for coding help' },
+      { id: 2, name: 'Aria', emoji: '🔮', tag: 'Claude', model: 'Claude 3.5', bgColor: '#1a3040', online: true, preview: 'Analysis complete.', unread: 2, pinnedMsg: null },
+      { id: 3, name: 'Forge', emoji: '⚒️', tag: 'Codex', model: 'Codex Ultra', bgColor: '#2a1a10', online: true, preview: 'Code ready!', unread: 5, pinnedMsg: null },
+      { id: 4, name: 'Sage', emoji: '📚', tag: 'Research', model: 'Perplexity', bgColor: '#0f2b1a', online: false, preview: 'See you later.', unread: 0, pinnedMsg: null },
+      { id: 5, name: 'Lumi', emoji: '✨', tag: 'Creative', model: 'DALL-E 3', bgColor: '#2b0a2a', online: true, preview: 'Image generated!', unread: 1, pinnedMsg: null },
+      { id: 6, name: 'Echo', emoji: '🎵', tag: 'Music AI', model: 'Suno v3', bgColor: '#0a1a2b', online: false, preview: 'Track complete.', unread: 0, pinnedMsg: null },
+    ]);
+
+    const pinnedConvos = computed(() => convos.value.slice(0, 2));
+    const filteredConvos = computed(() => {
+      const q = searchQuery.value.toLowerCase();
+      return convos.value.filter(c => !q || c.name.toLowerCase().includes(q));
+    });
+
+    const messageStore = ref({});
+    convos.value.forEach(c => {
+      messageStore.value[c.id] = SEED_MESSAGES(c.name).map((m, i) => ({ ...m, id: `${c.id}-${i}` }));
+    });
+
+    const activeConvo = ref(convos.value[0]);
+    const activeMessages = computed(() => messageStore.value[activeConvo.value?.id] || []);
+
+    const settings = ref({ compact: false, timestamps: true, enterSend: true, memory: false });
+
+    const notifSettings = ref([
+      { key: 'msgs', name: 'New Messages', desc: 'Notify on every message', on: true },
+      { key: 'mentions', name: 'Mentions', desc: 'When an AI calls your name', on: true },
+      { key: 'sounds', name: 'Sound Effects', desc: 'Play sounds on events', on: false },
+    ]);
+
+    const themes = [
+      { id: 'void', icon: '🌌', name: 'Void Dark', desc: 'Deep space default' },
+      { id: 'cyber', icon: '💜', name: 'Cyberpunk', desc: 'Neon purple haze' },
+      { id: 'forest', icon: '🌿', name: 'Terminal', desc: 'Classic green on black' },
+      { id: 'light', icon: '☀️', name: 'Light Mode', desc: 'Clean and bright' },
+    ];
+
+    const botProfiles = [
+      { id: 'nova', name: 'Nova', emoji: '🌟', model: 'GPT-4o', desc: 'General purpose, great at reasoning and conversation.' },
+      { id: 'aria', name: 'Aria', emoji: '🔮', model: 'Claude 3.5', desc: 'Analytical and thoughtful. Excellent for research.' },
+      { id: 'forge', name: 'Forge', emoji: '⚒️', model: 'Codex Ultra', desc: 'Specialized in code generation and debugging.' },
+      { id: 'lumi', name: 'Lumi', emoji: '✨', model: 'DALL-E 3', desc: 'Creative image generation and visual storytelling.' },
+    ];
+
+    const filteredSlashCmds = computed(() => {
+      const q = inputText.value.startsWith('/') ? inputText.value.slice(1).toLowerCase() : '';
+      return COMMANDS.filter(c => c.name.startsWith(q));
+    });
+
+    function switchConvo(c) {
+      activeConvo.value = c;
+      c.unread = 0;
+      nextTick(() => scrollBottom());
+    }
+
+    function openSettings(tab) {
+      settingsTab.value = tab;
+      settingsOpen.value = true;
+    }
+
+    function renderMsg(text) {
+      return text
+        .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br/>');
+    }
+
+    function handleInput() {
+      const el = inputEl.value;
+      if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+      showSlashMenu.value = inputText.value.startsWith('/') && inputText.value.length > 0;
+      slashIndex.value = 0;
+    }
+
+    function handleKeydown(e) {
+      if (showSlashMenu.value) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); slashIndex.value = (slashIndex.value + 1) % filteredSlashCmds.value.length; return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); slashIndex.value = (slashIndex.value - 1 + filteredSlashCmds.value.length) % filteredSlashCmds.value.length; return; }
+        if (e.key === 'Tab' || e.key === 'Enter') {
+          e.preventDefault();
+          if (filteredSlashCmds.value[slashIndex.value]) insertCmd(filteredSlashCmds.value[slashIndex.value]);
+          return;
+        }
+        if (e.key === 'Escape') { showSlashMenu.value = false; return; }
+      }
+      if (e.key === 'Enter' && !e.shiftKey && settings.value.enterSend) {
+        e.preventDefault(); sendMessage();
+      }
+    }
+
+    function insertCmd(cmd) {
+      activeCmd.value = cmd;
+      inputText.value = '';
+      showSlashMenu.value = false;
+      nextTick(() => inputEl.value?.focus());
+    }
+
+    function clearCmd() {
+      activeCmd.value = null;
+    }
+
+    async function sendMessage() {
+      const text = inputText.value.trim();
+      const cmd = activeCmd.value;
+      if (!text && !cmd) return;
+
+      const msgs = messageStore.value[activeConvo.value.id];
+      const userMsg = { id: Date.now(), isUser: true, time: now(), text: cmd ? `/${cmd.name} ${text}` : text, reactions: [] };
+      msgs.push(userMsg);
+      inputText.value = '';
+      activeCmd.value = null;
+      if (inputEl.value) inputEl.value.style.height = 'auto';
+      showSlashMenu.value = false;
+      nextTick(() => scrollBottom());
+
+      isTyping.value = true;
+      const delay = 1000 + Math.random() * 1500;
+      setTimeout(() => {
+        isTyping.value = false;
+        const botMsg = {
+          id: Date.now() + 1,
+          isUser: false,
+          time: now(),
+          text: randomResponse(cmd?.name || 'default'),
+          reactions: [
+            { emoji: '👍', count: Math.floor(Math.random() * 3), reacted: false },
+            { emoji: '⭐', count: Math.floor(Math.random() * 2), reacted: false },
+          ].filter(r => r.count > 0)
+        };
+        msgs.push(botMsg);
+        nextTick(() => scrollBottom());
+      }, delay);
+    }
+
+    function scrollBottom() {
+      if (msgsEl.value) msgsEl.value.scrollTop = msgsEl.value.scrollHeight;
+    }
+
+    function toggleReaction(msg, r) {
+      r.reacted = !r.reacted;
+      r.count += r.reacted ? 1 : -1;
+    }
+
+    onMounted(() => scrollBottom());
+
+    return {
+      sidebarOpen, searchQuery, inputText, isTyping, voiceMode,
+      settingsOpen, settingsTab, showScrollBtn, msgsEl, inputEl,
+      activeCmd, showSlashMenu, slashIndex, pinnedOpen, dmsOpen,
+      selectedBot, activeTheme, convos, pinnedConvos, filteredConvos,
+      activeConvo, activeMessages, settings, notifSettings, themes, botProfiles,
+      filteredSlashCmds, switchConvo, openSettings, renderMsg,
+      handleInput, handleKeydown, insertCmd, clearCmd, sendMessage,
+      scrollBottom, toggleReaction,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
