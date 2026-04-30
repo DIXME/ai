@@ -1,12 +1,15 @@
-export async function initws(){
+export type MessageEntry = Record<string, string>;
+export type Messages = MessageEntry[]
+
+export async function initws(): Promise<WebSocket> {
     return new Promise(resolve => {
         const ws = new WebSocket(window.location.origin+":8080")
         ws.onmessage = (msg) => {
             try {
-                const message = JSON.parse(m.data)
-                console.log(`[WS] [message] from: server; content: ${m.data}`)
+                const message = JSON.parse(msg.data)
+                console.log(`[WS] [message] from: server; content: ${msg.data}`)
             } catch(e) {
-                throw new Error(`[WS] [message] [NOTJSON!] from: server; content: ${m.data}`)
+                throw new Error(`[WS] [message] [NOTJSON!] from: server; content: ${msg.data}`)
             }
         }
         ws.onclose = (e) => {
@@ -19,7 +22,7 @@ export async function initws(){
     })
 }
 
-export async function chat(messages, output=document.body){
+export async function chat(messages: Messages, output=document.body): Promise<string> {
     console.log(`[request] [chat] [${Object.keys(messages).length}] -> [${output}]`)
     const r = await fetch("/api/chat", {
         method:"POST",
@@ -30,8 +33,8 @@ export async function chat(messages, output=document.body){
         body: JSON.stringify({messages})
     })
 
-    const Decoder = new TextDecoder();
-    var total = "";
+    const Decoder: TextDecoder = new TextDecoder();
+    var total: string = "";
     for await (const part of r.body) {
         const chunk = Decoder.decode(part);
         output.append(chunk);
@@ -40,7 +43,7 @@ export async function chat(messages, output=document.body){
     return total;
 }
 
-export async function single(prompt, output=document.body){
+export async function single(prompt: string, output=document.body): Promise<string> {
     console.log(`[request] [single] [${prompt}] -> [${output}]`)
     const r = await fetch("/api/prompt", {
         method:"POST",
@@ -51,8 +54,8 @@ export async function single(prompt, output=document.body){
         body: JSON.stringify({prompt})
     });
 
-    const Decoder = new TextDecoder();
-    var total = "";
+    const Decoder: TextDecoder = new TextDecoder();
+    var total: string = "";
     for await (const part of r.body) {
         const chunk = Decoder.decode(part);
         output.append(chunk);
@@ -62,13 +65,17 @@ export async function single(prompt, output=document.body){
 }
 
 export class AICharacter {
-    constructor(name, desc, rules="none."){
+    name: string
+    desc: string
+    rules: string
+
+    constructor(name: string, desc: string, rules: string = "none."){
         this.name = name;
         this.desc = desc;
         this.rules = rules;
     }
 
-    out(){
+    out(): string {
         return `
         ${this.name}:
             Description: ${this.desc}
@@ -78,6 +85,10 @@ export class AICharacter {
 }
 
 export class AIConversation {
+    messages: Messages
+    rules: string
+    limit: number
+
     constructor(rules = "none.",){
         // first message is all of the rules and stuff
         this.messages = [];
@@ -87,11 +98,12 @@ export class AIConversation {
     }
 
     update_rules(){
+        if(!this.messages[0]){throw new Error("[AIConversation] [update_rules] failed! no rules entry in messages!");return}
         this.messages[0].content = this.rules
     }
 
-    message(content, role="user"){
-        if(!(role == "user"|role=="assistant"|role == "system"|role=="tool")){
+    message(content: string, role: string ="user"){
+        if(!(role == "user"||role=="assistant"||role == "system"||role=="tool")){
             throw new Error(`[Conversation] [message] Error, role ${role} dosent exist`);
         }
         console.log(`[AIConversation] [message]; [${role}] -> [${content}]`)
@@ -99,15 +111,17 @@ export class AIConversation {
     }
 
     async prompt(){
-        const msg = await chat(this.message)
+        const msg = await chat(this.messages)
         this.message(msg,"assistant")
     }
 }
 
 export class AICharacterConversation extends AIConversation {
-    constructor(characters = [], rules = "", limit = 2){
-        const characters_key = {};
-        characters.forEach(c => {
+    characters: Record<string, AICharacter>
+
+    constructor(characters: AICharacter[] = [], rules = "", limit = 2){
+        const characters_key: Record<string, AICharacter> = {};
+        characters.forEach((c: AICharacter) => {
             characters_key[c.name] = c;
         })
         super(`
@@ -127,7 +141,7 @@ export class AICharacterConversation extends AIConversation {
         this.limit = limit;
     }
 
-    async message_ai(name, instruction="none", out=document.body){
+    async message_ai(name: string, instruction: string ="none", out=document.body){
         if(!(name in this.characters)){
             throw new Error(`[AICharacterConversation] [message_ai] ${name}, not found in character list`)
         }
