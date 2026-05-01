@@ -1,6 +1,20 @@
 export type MessageEntry = Record<string, string>;
 export type Messages = MessageEntry[]
 
+var endpoint: string  = ""
+type RequestEntry = {
+    r: Promise<Response>
+    controller: AbortController
+}
+const requests: RequestEntry[] = []
+
+export const abort_handler = () => requests.forEach(r=>r.controller.abort()) // set as on before mounted in vue app
+  
+export function set_endpoint(n: string){
+    console.log(`[AI] [set_endpoint] endpoint swapped; ${endpoint} -> ${n}`)
+    endpoint = n;
+}
+  
 export async function initws(): Promise<WebSocket> {
     return new Promise(resolve => {
         const ws = new WebSocket(window.location.origin+":8080")
@@ -22,45 +36,59 @@ export async function initws(): Promise<WebSocket> {
     })
 }
 
-export async function chat(messages: Messages, output=document.body): Promise<string> {
-    console.log(`[request] [chat] [${Object.keys(messages).length}] -> [${output}]`)
-    const r = await fetch("/api/chat", {
+export async function chat(messages: Messages, cb: (chunk: string) => void): Promise<string> {
+    console.log(`[request] [chat] [${Object.keys(messages).length}] -> [${cb}]`)
+    const controller: AbortController  = new AbortController()
+    const signal = controller.signal
+    
+    const r = fetch(endpoint+"/api/chat", {
         method:"POST",
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
-        body: JSON.stringify({messages})
+        body: JSON.stringify({messages}),
+        signal
     })
-
+    const e: RequestEntry = {r,controller};
+    requests.push(e);
+    const data = await r;
     const Decoder: TextDecoder = new TextDecoder();
     var total: string = "";
-    for await (const part of r.body) {
+    for await (const part of data.body) {
         const chunk = Decoder.decode(part);
-        output.append(chunk);
+        cb(chunk);
         total += chunk;
     }
+    requests.splice(requests.indexOf(e),1)
     return total;
 }
 
-export async function single(prompt: string, output=document.body): Promise<string> {
-    console.log(`[request] [single] [${prompt}] -> [${output}]`)
-    const r = await fetch("/api/prompt", {
+export async function single(prompt: string, cb: (chunk: string) => void): Promise<string> {
+    console.log(`[request] [single] [${prompt}] -> [${cb}]`)
+    const controller: AbortController  = new AbortController()
+    const signal = controller.signal
+
+    const r = fetch(endpoint+"/api/prompt", {
         method:"POST",
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
-        body: JSON.stringify({prompt})
+        body: JSON.stringify({prompt}),
+        signal
     });
-
+    const e: RequestEntry = {r,controller};
+    requests.push(e);
+    const data = await r;
     const Decoder: TextDecoder = new TextDecoder();
     var total: string = "";
-    for await (const part of r.body) {
+    for await (const part of data.body) {
         const chunk = Decoder.decode(part);
-        output.append(chunk);
+        cb(chunk);
         total += chunk;
     }
+    requests.splice(requests.indexOf(e),1)
     return total;
 }
 
@@ -151,15 +179,3 @@ export class AICharacterConversation extends AIConversation {
         return response
     }
 }
-
-async function test(){
-    const ws = await initws()
-    const c = new AICharacterConversation([
-        new AICharacter("Mika", "mean, tall, bully, 30 year old woman"),
-        new AICharacter("Kuro", "short 17 year old boy, looks gay")]
-    )
-    await c.message_ai("Mika", "mika sees kuro in the hallway and starts messing with him")
-    console.log("done!")
-}
-
-test()

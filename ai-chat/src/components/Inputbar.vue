@@ -37,13 +37,14 @@ function send() {
   z-index: 1000;
 }
 
-input {
+input, textarea {
   flex: 1;
   background: #191b1c;
   border: none;
   padding: 10px;
   color: white;
   border-radius: 5px;
+  outline: none;
 }
 
 button {

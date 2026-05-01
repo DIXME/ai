@@ -20,34 +20,44 @@ app.get("/", (req, res, next) => {
 })
 
 app.post("/api/prompt", async (req, res, next) => {
+    const controller = new AbortController()
+    const signal = controller.signal
+
+
     console.log(req.body)
     const response = await ollama.generate({
         model: config.ollama.model,
         prompt: req.body["prompt"] || "why is the sky blue?",
         stream: true
     });
+    
     res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
     res.write("");
     
     for await (const part of response) {
-        // Output each chunk to the console without a newline
+        if(signal.aborted){response.abort();break}
         res.write(part.response)
     }
     res.end("")
 })
 
 app.post("/api/chat", async (req, res, next) => {
+    const controller = new AbortController()
+    const signal = controller.signal
+
     console.log(req.body)
     const response = await ollama.chat({
         model: config.ollama.model,
         messages: req.body["messages"] || [{role:"user",content:"why is the sky blue?"}],
         stream: true
     });
+    
+
     res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
     res.write("");
     
     for await (const part of response) {
-        // Output each chunk to the console without a newline
+        if(signal.aborted){break}
         res.write(part.message.content)
     }
     res.end("")
