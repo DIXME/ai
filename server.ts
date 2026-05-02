@@ -30,6 +30,7 @@ app.post("/api/prompt", async (req, res, next) => {
         prompt: req.body["prompt"] || "why is the sky blue?",
         stream: true
     });
+    console.log("pas")
     
     res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
     res.write("");
@@ -51,6 +52,7 @@ app.post("/api/chat", async (req, res, next) => {
         messages: req.body["messages"] || [{role:"user",content:"why is the sky blue?"}],
         stream: true
     });
+    console.log("pas")
     
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 

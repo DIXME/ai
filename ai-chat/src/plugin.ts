@@ -96,11 +96,14 @@ export class AICharacter {
     name: string
     desc: string
     rules: string
+    pfp: string
 
-    constructor(name: string, desc: string, rules: string = "none."){
+
+    constructor(name: string, desc: string, pfp: string, rules: string = "none."){
         this.name = name;
         this.desc = desc;
         this.rules = rules;
+        this.pfp = pfp;
     }
 
     out(): string {
@@ -138,8 +141,8 @@ export class AIConversation {
         this.messages.push({role,content})
     }
 
-    async prompt(){
-        const msg = await chat(this.messages)
+    async prompt(cb:(chunk: string)=>void){
+        const msg = await chat(this.messages,cb)
         this.message(msg,"assistant")
     }
 }
@@ -169,13 +172,13 @@ export class AICharacterConversation extends AIConversation {
         this.limit = limit;
     }
 
-    async message_ai(name: string, instruction: string ="none", out=document.body){
+    async message_ai(name: string, instruction: string ="none", cb:(chunk: string)=>void){
         if(!(name in this.characters)){
             throw new Error(`[AICharacterConversation] [message_ai] ${name}, not found in character list`)
         }
         const insc = `respond for ${name}; continue or create the senario. additional instruction: ${instruction}`;
         this.message(insc)
-        const response = await chat(this.messages, out)
+        const response = await chat(this.messages, cb)
         return response
     }
 }
