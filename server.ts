@@ -3,6 +3,7 @@ import config from "./config.json" with { type: 'json' };
 import {init} from "./websocket.ts"
 import ollama from "ollama"
 import bodyParser from 'body-parser';
+import { txt2img, Txt2ImgPayload } from "./image_api.ts";
 
 const app = express()
 const __dirname = import.meta.dirname;
@@ -20,49 +21,52 @@ app.get("/", (req, res, next) => {
 })
 
 app.post("/api/prompt", async (req, res, next) => {
-    const controller = new AbortController()
-    const signal = controller.signal
-
-
     console.log(req.body)
-    const response = await ollama.generate({
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
+    res.flushHeaders();
+    
+    const r = await ollama.generate({
         model: config.ollama.model,
         prompt: req.body["prompt"] || "why is the sky blue?",
         stream: true
     });
-    console.log("pas")
     
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
-    res.write("");
-    
-    for await (const part of response) {
-        if(signal.aborted){response.abort();break}
+    for await (const part of r) {
         res.write(part.response)
     }
     res.end("")
 })
 
 app.post("/api/chat", async (req, res, next) => {
-    const controller = new AbortController()
-    const signal = controller.signal
-
     console.log(req.body)
-    const response = await ollama.chat({
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
+    res.flushHeaders();
+    
+    const r = await ollama.chat({
         model: config.ollama.model,
         messages: req.body["messages"] || [{role:"user",content:"why is the sky blue?"}],
         stream: true
     });
-    console.log("pas")
     
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8'); 
-    res.write("");
-    
-    for await (const part of response) {
-        if(signal.aborted){break}
+    for await (const part of r) {
         res.write(part.message.content)
     }
     res.end("")
+})
+
+app.post("/api/image", async (req, res, next) => {
+    console.log(req.body)
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    
+    const r = await txt2img(req.body);
+
+    r
 })
 
 app.listen(config.server.port)

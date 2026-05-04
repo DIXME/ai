@@ -92,6 +92,14 @@ export async function single(prompt: string, cb: (chunk: string) => void): Promi
     return total;
 }
 
+type IamgePayload = {
+    batches: number
+    batch_size: number
+    prompt: string
+    width: number
+    height: number
+}
+
 export class AICharacter {
     name: string
     desc: string

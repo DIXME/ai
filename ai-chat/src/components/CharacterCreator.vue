@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {ref} from "vue"
 
-import * as ai from "./plugin.js"
-import Message from "./components/Message.vue"
-import { Storage } from "./localStoargeManager.js"
+import * as ai from "../plugin.js"
+import Message from "./Message.vue"
+import { Storage } from "../localStoargeManager.js"
 
 const SINGLE_PROMPT_ROLE_RULES = `
 You are an AI character designer. Your task is to generate a strictly formatted, clean, and efficient character definition for use in roleplay systems.
@@ -131,9 +131,15 @@ function pfp_maker(){
 
 const storage = new Storage()
 
-const username = ref('Mika')
-const pfp = ref('https://upload.wikimedia.org/wikipedia/commons/1/15/Cat_August_2010-4.jpg')
-const desc = ref('Young loving mother')
+const props = defineProps({
+  username: String,
+  pfp: String,
+  desc: String
+})
+
+const username = ref(props.username ?? 'Mika')
+const pfp = ref(props.pfp ?? 'https://upload.wikimedia.org/wikipedia/commons/1/15/Cat_August_2010-4.jpg')
+const desc = ref(props.desc ?? 'Young loving mother')
 
 ai.set_endpoint("/ai") // use ai on vite server
 
