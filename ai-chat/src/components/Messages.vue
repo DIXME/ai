@@ -12,9 +12,10 @@
 
 <script setup>
 import Message from './Message.vue';
+import MessageT from './message.ts';
 
 defineProps({
-  messages: Array
+  messages: Array<MessageT>
 })
 </script>
 

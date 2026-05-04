@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import {ref} from "vue"
+import {ref, Ref} from "vue"
 
 import * as ai from "../plugin.js"
 import Message from "./Message.vue"
 import { Storage } from "../localStoargeManager.js"
+import type { ReferenceEntry } from "typescript"
 
 const SINGLE_PROMPT_ROLE_RULES = `
 You are an AI character designer. Your task is to generate a strictly formatted, clean, and efficient character definition for use in roleplay systems.
@@ -119,10 +120,19 @@ function examples(){
   })
 }
 
-function save(){
-  const charecter: ai.AICharacter = new ai.AICharacter(username.value,desc.value,pfp.value)
-  storage.characters.push(charecter)
-  storage.save()
+function save(){  
+  const char = storage.characters.find(c => c.id==props.id)
+  if(char == undefined){
+    const charecter: ai.AICharacter = new ai.AICharacter(username.value,desc.value,pfp.value)
+    storage.characters.push(charecter)
+    storage.save()
+  } else {
+    console.log(`[save] character dose exist; updating...`)
+    char.desc=desc.value;
+    char.name=username.value;
+    char.pfp=pfp.value;
+  }
+  
 }
 
 function pfp_maker(){
@@ -134,12 +144,25 @@ const storage = new Storage()
 const props = defineProps({
   username: String,
   pfp: String,
-  desc: String
+  desc: String,
+  id: {
+    type: String,
+    default: crypto.randomUUID()
+  }
 })
+const char: ai.AICharacter | undefined = storage.characters.find(c => c.id==props.id)
+var username: Ref<string>, pfp: Ref<string>, desc: Ref<string>;
 
-const username = ref(props.username ?? 'Mika')
-const pfp = ref(props.pfp ?? 'https://upload.wikimedia.org/wikipedia/commons/1/15/Cat_August_2010-4.jpg')
-const desc = ref(props.desc ?? 'Young loving mother')
+if(char==undefined){
+  // Load defaults if dosent exist
+  username = ref(props.username ?? 'Mika')
+  pfp = ref(props.pfp ?? 'https://upload.wikimedia.org/wikipedia/commons/1/15/Cat_August_2010-4.jpg')
+  desc = ref(props.desc ?? 'Young loving mother')
+} else {
+  username = ref(char.name)
+  pfp = ref(char.pfp)
+  desc = ref(char.desc)
+}
 
 ai.set_endpoint("/ai") // use ai on vite server
 

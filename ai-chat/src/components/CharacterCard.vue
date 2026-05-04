@@ -1,24 +1,4 @@
-<template>
-  <div class="char">
-    <!-- Avatar -->
-    <div class="avatar">
-      <img v-if="pfp" :src="pfp" />
-      <div v-else class="fallback">{{ initials }}</div>
-    </div>
-
-    <!-- Name -->
-    <div class="name">{{ username }}</div>
-
-    <!-- Actions -->
-    <div class="actions">
-      <button @click="$emit('copy')">📋Copy</button>
-      <button @click="$emit('edit')">✏️Edit</button>
-      <button @click="$emit('delete')">🗑️Delete</button>
-    </div>
-  </div>
-</template>
-
-<script setup type="ts"">
+<script setup type="ts">
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -26,7 +6,8 @@ const props = defineProps({
     type: String,
     default: 'Mika'
   },
-  pfp: String
+  pfp: String,
+  id: String
 })
 
 const initials = computed(() =>
@@ -39,6 +20,25 @@ const initials = computed(() =>
 )
 </script>
 
+<template>
+  <div class="char">
+    <!-- Avatar -->
+    <div class="avatar">
+      <img v-if="pfp" :src="pfp" />
+      <div v-else class="fallback">{{ initials }}</div>
+    </div>
+
+    <!-- Name -->
+    <div class="name">{{ username }} <span class="light"><{{ id }}></span></div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button @click="$emit('edit')">✏️Edit</button>
+      <button @click="$emit('delete')">🗑️Delete</button>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .char {
   display: flex;
@@ -47,7 +47,7 @@ const initials = computed(() =>
   padding: 6px 10px;
   background: #2b2d31;
   border-radius: 8px;
-  width: fit-content;
+  width: 100%;
 }
 
 /* Avatar */
@@ -88,6 +88,7 @@ const initials = computed(() =>
 .actions {
   display: flex;
   gap: 4px;
+  margin-left: auto;
 }
 
 button {
@@ -102,5 +103,10 @@ button {
 
 button:hover {
   background: #4f545c;
+}
+
+.light {
+  color: rgba(255, 255, 255, 0.523);
+  font-size: 9px;
 }
 </style>

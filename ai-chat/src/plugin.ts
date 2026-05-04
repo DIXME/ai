@@ -14,6 +14,10 @@ export function set_endpoint(n: string){
     console.log(`[AI] [set_endpoint] endpoint swapped; ${endpoint} -> ${n}`)
     endpoint = n;
 }
+
+export function generateID(): string{
+    return crypto.randomUUID();
+}
   
 export async function initws(): Promise<WebSocket> {
     return new Promise(resolve => {
@@ -105,6 +109,7 @@ export class AICharacter {
     desc: string
     rules: string
     pfp: string
+    id: string
 
 
     constructor(name: string, desc: string, pfp: string, rules: string = "none."){
@@ -112,6 +117,7 @@ export class AICharacter {
         this.desc = desc;
         this.rules = rules;
         this.pfp = pfp;
+        this.id = generateID();
     }
 
     out(): string {

@@ -6,7 +6,10 @@
         "port": 8080
     },
     "ollama": {
-        "model": "mistral"
+        "model": "mistral",
+        "settings": {
+            "keep-alvive": -1
+        }
     },
     "stable_diffusion": {
         "endpoint": "http://127.0.0.1:7860"
