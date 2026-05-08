@@ -5,7 +5,7 @@ import { AICharacter, AICharacterConversation, AIConversation } from "./plugin";
 
 export class Storage {
     characters: AICharacter[] = [];
-    conversations: AIConversation[] = [];
+    conversations: AICharacterConversation[] = [];
 
     constructor() {
         this.load();
@@ -29,6 +29,10 @@ export class Storage {
                 throw new Error("Storage corrupted");
             }
         }
+
+        // init classes
+        this.characters = this.characters.map(c => {return new AICharacter(c.name,c.desc,c.pfp,c.rules,c.id)})
+        this.conversations = this.conversations.map((c: AICharacterConversation) => {return new AICharacterConversation(c.characters,c.rules)})
     }
 
     save() {

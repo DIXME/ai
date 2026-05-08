@@ -4,13 +4,29 @@ import Characters from "./components/Characters.vue";
 import ChatView from "./components/ChatView.vue";
 import { AICharacterConversation } from "./plugin";
 import { Storage } from "./localStoargeManager";
-const s = new Storage()
+import { ref, Ref } from "vue";
+import {generateImage, set_endpoint} from "./plugin"
+import Image from "./components/Image.vue";
 
-const c = new AICharacterConversation(s.characters)
+const s = new Storage()
+var prompt: string = "";
+const container: Ref<HTMLElement | null> = ref(null)
+
+async function send() {
+  const x = await generateImage({ prompt });
+  x.forEach(i => {
+    container.value?.appendChild(i)  // just drop the element straight into the DOM
+    console.log(i)
+  })
+}
+
+set_endpoint("/ai")
 </script>
 
 <template>
-  <CharacterCreator></CharacterCreator>
-  <Characters></Characters>
-  <ChatView></ChatView>
+  <input placeholder="prompt" v-model="prompt" />
+  <button @click="send">Gen💫</button>
+  <Image></Image>
+  <div ref="container" />  <!-- images land here directly -->
+  
 </template>

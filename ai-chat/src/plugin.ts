@@ -40,6 +40,39 @@ export async function initws(): Promise<WebSocket> {
     })
 }
 
+export interface Txt2ImgPayload {
+  prompt: string;
+  negative_prompt?: string;
+  steps?: number;
+  width?: number;
+  height?: number;
+  cfg_scale?: number;
+  sampler_name?: string;
+  seed?: number;
+}
+
+export async function generateImage(payload: Txt2ImgPayload): Promise<HTMLImageElement[]> {
+  const res = await fetch(endpoint+"/api/image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+
+  const data = await res.json() as { images: string[] };
+
+  // Convert each base64 string to a displayable <img>
+  return data.images.map((b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    return img;
+  });
+}
+
 export async function chat(messages: Messages, cb: (chunk: string) => void): Promise<string> {
     console.log(`[request] [chat] [${Object.keys(messages).length}] -> [${cb}]`)
     const controller: AbortController  = new AbortController()
@@ -96,14 +129,6 @@ export async function single(prompt: string, cb: (chunk: string) => void): Promi
     return total;
 }
 
-type IamgePayload = {
-    batches: number
-    batch_size: number
-    prompt: string
-    width: number
-    height: number
-}
-
 export class AICharacter {
     name: string
     desc: string
@@ -111,13 +136,12 @@ export class AICharacter {
     pfp: string
     id: string
 
-
-    constructor(name: string, desc: string, pfp: string, rules: string = "none."){
+    constructor(name: string, desc: string, pfp: string, rules: string = "none.", id: string = generateID()){
         this.name = name;
         this.desc = desc;
         this.rules = rules;
         this.pfp = pfp;
-        this.id = generateID();
+        this.id = id;
     }
 
     out(): string {

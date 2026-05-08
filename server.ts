@@ -61,18 +61,22 @@ app.post("/api/chat", async (req, res, next) => {
     res.end("")
 })
 
-app.post("/api/image", async (req, res, next) => {
-    console.log(req.body)
+app.post("/api/image", async (req, res) => {
+  try {
+    const images = await txt2img(req.body);          // returns string[]
 
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
-    
-    const r = await txt2img(req.body);
+    if (!images || images.length === 0) {
+      res.status(500).json({ error: "No images returned" });
+      return;
+    }
 
-    r
-})
+    // Option A — return JSON with all base64 images (recommended)
+    res.json({ images });
+
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
 
 app.listen(config.server.port)
 init()

@@ -1,3 +1,11 @@
+<script setup type="ts">
+import Message from './Message.vue';
+import MessageT from './message.ts';
+
+const props = defineProps({messages: MessageT})
+</script>
+
+
 <template>
   <div class="list">
     <Message
@@ -10,14 +18,6 @@
   </div>
 </template>
 
-<script setup>
-import Message from './Message.vue';
-import MessageT from './message.ts';
-
-defineProps({
-  messages: Array<MessageT>
-})
-</script>
 
 <style>
 .list {
