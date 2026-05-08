@@ -4,9 +4,11 @@ import Characters from "./components/Characters.vue";
 import ChatView from "./components/ChatView.vue";
 import { AICharacterConversation } from "./plugin";
 import { Storage } from "./localStoargeManager";
-import { ref, Ref } from "vue";
+import { createVNode, ref, Ref } from "vue";
 import {generateImage, set_endpoint} from "./plugin"
-import Image from "./components/Image.vue";
+import ImageView from "./components/ImageView.vue";
+import Messages from "./components/Messages.vue";
+import Images from "./components/Images.vue";
 
 const s = new Storage()
 var prompt: string = "";
@@ -19,6 +21,12 @@ async function send() {
     console.log(i)
   })
 }
+type ImageViewT = InstanceType<typeof ImageView>
+var images = []
+
+for(var i = 0; i < 9; i++){
+  images.push(createVNode(ImageView))
+}
 
 set_endpoint("/ai")
 </script>
@@ -26,7 +34,6 @@ set_endpoint("/ai")
 <template>
   <input placeholder="prompt" v-model="prompt" />
   <button @click="send">Gen💫</button>
-  <Image></Image>
   <div ref="container" />  <!-- images land here directly -->
-  
+  <Images :images="images"></Images>
 </template>

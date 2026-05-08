@@ -1,8 +1,12 @@
-<script setup type="ts">
+<script type="ts" setup>
 import Message from './Message.vue';
-import MessageT from './message.ts';
 
-const props = defineProps({messages: MessageT})
+type MessageT = InstanceType<typeof Message>
+
+const props = defineProps({
+  messages: Array<MessageT>
+})
+
 </script>
 
 
